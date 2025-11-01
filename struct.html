@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Structs and Unions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+
+        h3 {
+            color: #16a085;
+            margin-top: 20px;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .comparison-table th {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .dialogue {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .question {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .answer {
+            color: #555;
+        }
+
+        .memory-diagram {
+            background: #e8f4f8;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border: 1px solid #b3d9ff;
+        }
+
+        .note {
+            background: #fff8e1;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .warning {
+            background: #ffebee;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #f44336;
+        }
+
+        .key-point {
+            background: #e8f5e8;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Structs and Unions</h1>
+        <div class="dialogue">
+            <div class="answer">
+                <h3>1. Arr: the fundamental data container</h3>
+                <div class="code-block">
+                    typedef struct { <br>
+                    &nbsp;&nbsp; float* values; <br>
+                    &nbsp;&nbsp; int* shape; <br>
+                    &nbsp;&nbsp; int* strides; <br>
+                    &nbsp;&nbsp; int ndim; <br>
+                    &nbsp;&nbsp; int size; <br>
+                    } Arr;
+                </div>
+                <p>Think of Arr as the physical memory view of a tensor - it says where numbers live, how they are
+                    shaped,
+                    and how to walk through them.</p>
+
+                <h3>Components:</h3>
+
+                <h4>float* values:</h4>
+                <p>A pointer to the raw data, usually stored in a flat 1D contiguous array in memory.</p>
+                <p>Example: if you have a 2×3 tensor, it's still stored linearly like [a11, a12, a13, a21, a22, a23].
+                </p>
+
+                <h4>int* shape:</h4>
+                <p>Describes how to interpret that flat memory. For the 2×3 case, shape = [2, 3].</p>
+                <p>The number of elements in shape equals ndim (the number of dimensions).</p>
+
+                <h4>int* strides:</h4>
+                <p>The stride tells how many steps (in memory) you move to go from one element along a given dimension
+                    to
+                    the next.</p>
+                <p>For a row-major array:</p>
+                <div class="code-block">
+                    shape = [2, 3] <br>
+                    strides = [3, 1]
+                </div>
+                <p>Meaning: to move one row down, jump 3 elements; to move one column right, jump 1 element.</p>
+                <p>This is what allows views, slicing, transposing, and broadcasting without copying memory.</p>
+
+                <h4>int ndim:</h4>
+                <p>Number of dimensions (rank of the tensor).</p>
+
+                <h4>int size:</h4>
+                <p>Total number of elements = product of all shape dims.</p>
+
+                <p>You can think of Arr as describing a map from N-D index => 1-D memory address.</p>
+            </div>
+        </div>
+        <div class="dialogue">
+            <div class="answer">
+                <h3>2. Arg: the generic operation argument</h3>
+                <div class="code-block">
+                    typedef union { <br>
+                    &nbsp;&nbsp; int ival; <br>
+                    &nbsp;&nbsp; float fval; <br>
+                    &nbsp;&nbsp; int* ilist; <br>
+                    } Arg;
+                </div>
+                <p>This is a clever design: operations (like sum, mean, reshape, etc.) sometimes require extra
+                    parameters.
+                </p>
+                <p>For example:</p>
+                <ul>
+                    <li>mean may need axis (an integer)</li>
+                    <li>matmul doesn't need any</li>
+                    <li>reshape might need a list of new dimensions</li>
+                </ul>
+                <p>But all these argument types differ - some are ints, some floats, some lists.</p>
+                <p>A union allows you to store any one of these types in the same memory slot.</p>
+                <p>It's like a shape-shifting container that says, "I might be an int today, a float tomorrow."</p>
+            </div>
+        </div>
+        <div class="dialogue">
+            <div class="answer">
+                <h3>3. Tensor: the higher-level abstraction</h3>
+                <div class="code-block">
+                    typedef struct Tensor {
+                    &nbsp;&nbsp; Arr* data; <br>
+                    &nbsp;&nbsp; Arr* grad; <br>
+                    &nbsp;&nbsp; int op; <br>
+                    &nbsp;&nbsp; struct Tensor* prevs[MAX_PREVS]; <br>
+                    &nbsp;&nbsp; int num_prevs; <br>
+                    &nbsp;&nbsp; Arg args[MAX_ARGS]; <br>
+                    } Tensor;
+                </div>
+                <p>Now we step up from raw data to computational graphs - this is the abstraction that lets you do
+                    autodiff
+                    (automatic differentiation).</p>
+
+                <h3>Fields explained:</h3>
+
+                <h4>Arr* data:</h4>
+                <p>This points to the actual numerical data (the forward-pass result).</p>
+                <p>For example, if this tensor represents C = A * B, then data holds the result of that multiplication.
+                </p>
+
+                <h4>Arr* grad:</h4>
+                <p>Gradient of this tensor with respect to some loss function.</p>
+                <p>During backpropagation, this gets filled in.</p>
+                <p>At the start of training, all grad arrays are zero.</p>
+
+                <h4>int op:</h4>
+                <p>Identifies which operation created this tensor - maybe MATMUL, RELU, ADD, etc.</p>
+                <p>This allows you to know how to backprop through it later.</p>
+
+                <h4>Tensor* prevs[MAX_PREVS]:</h4>
+                <p>These are the input tensors that were used to compute this tensor.</p>
+                <p>For example, if this tensor C = A + B, then:</p>
+                <div class="code-block">
+                    prevs = [A, B]
+                    num_prevs = 2
+                </div>
+                <p>That's how you reconstruct the computational graph - a directed acyclic graph (DAG) of operations.
+                </p>
+
+                <h4>int num_prevs:</h4>
+                <p>How many previous tensors were used.</p>
+
+                <h4>Arg args[MAX_ARGS]:</h4>
+                <p>Additional arguments that modify the operation (axis, stride, scalar values, etc.).</p>
+                <p>Think of them as operation metadata.</p>
+            </div>
+        </div>
+        <div class="dialogue">
+            <div class="answer">
+                <h3>4. How it all ties together (intuitively)</h3>
+                <p>Imagine you call:</p>
+                <div class="code-block">
+                    Tensor *A = create_tensor_from_array(...); <br>
+                    Tensor *B = create_tensor_from_array(...); <br>
+                    Tensor *C = tensor_add(A, B);
+                </div>
+                <p>tensor_add creates a new Tensor C.</p>
+                <p>It allocates a new Arr for C->data.</p>
+                <p>Sets C->op = ADD.</p>
+                <p>Records that C->prevs = [A, B].</p>
+                <p>Stores any args (none in this case).</p>
+
+                <p>Later, during backpropagation, you'll do something like:</p>
+                <div class="code-block">
+                    if (C->op == ADD) { <br>
+                    &nbsp;&nbsp; A->grad += C->grad; <br>
+                    &nbsp;&nbsp; B->grad += C->grad; <br>
+                    }
+                </div>
+                <p>Each operation in your system builds nodes in the graph automatically.</p>
+                <p>You can then call backward() on the final loss tensor, and the engine recursively traverses prevs[],
+                    applying the correct gradient rule per op.</p>
+                <p>That's the magic: the graph builds itself as you do math, and backprop unwinds it in reverse.</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
